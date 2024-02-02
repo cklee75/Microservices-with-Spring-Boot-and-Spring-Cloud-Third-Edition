@@ -184,7 +184,18 @@ fi
 
 waitForService curl -k https://$HOST:$PORT/actuator/health
 
-ACCESS_TOKEN=$(curl -k https://writer:secret-writer@$HOST:$PORT/oauth2/token -d grant_type=client_credentials -d scope="product:read product:write" -s | jq .access_token -r)
+export TENANT=dev-yf20qdcmfv5z5d5y.us.auth0.com
+export WRITER_CLIENT_ID=3Ak3AglC2zZbS0nUPMszJV615OJL8S2C
+export WRITER_CLIENT_SECRET=uzFPfY3fmCsye-sywZxA0vJu_N1M5hzmxfd1MP31Pa2AVM_14MTBI00rPILzS-UL
+
+ACCESS_TOKEN=$(curl -X POST https://$TENANT/oauth/token \
+-d grant_type=client_credentials \
+-d audience=https://localhost:8443/product-composite \
+-d scope=product:read+product:write \
+-d client_id=$WRITER_CLIENT_ID \
+-d client_secret=$WRITER_CLIENT_SECRET -s | jq -r .access_token)
+
+# ACCESS_TOKEN=$(curl -k https://writer:secret-writer@$HOST:$PORT/oauth2/token -d grant_type=client_credentials -d scope="product:read product:write" -s | jq .access_token -r)
 echo ACCESS_TOKEN=$ACCESS_TOKEN
 AUTH="-H \"Authorization: Bearer $ACCESS_TOKEN\""
 
@@ -229,8 +240,19 @@ assertEqual "\"Type mismatch.\"" "$(echo $RESPONSE | jq .message)"
 # Verify that a request without access token fails on 401, Unauthorized
 assertCurl 401 "curl -k https://$HOST:$PORT/product-composite/$PROD_ID_REVS_RECS -s"
 
+
+export READER_CLIENT_ID=wTzRIiai8NN1dRSm2uIEkjbwN3CSsQFD
+export READER_CLIENT_SECRET=F3yNay4wOeYlOTXK96rbGlHEXU6no4bI6U8vFequ96L1d3D6Kg_I4ERY2rijInzb
+
 # Verify that the reader - client with only read scope can call the read API but not delete API.
-READER_ACCESS_TOKEN=$(curl -k https://reader:secret-reader@$HOST:$PORT/oauth2/token -d grant_type=client_credentials -d scope="product:read" -s | jq .access_token -r)
+# READER_ACCESS_TOKEN=$(curl -k https://reader:secret-reader@$HOST:$PORT/oauth2/token -d grant_type=client_credentials -d scope="product:read" -s | jq .access_token -r)
+READER_ACCESS_TOKEN=$(curl -X POST https://$TENANT/oauth/token \
+-d grant_type=client_credentials \
+-d audience=https://localhost:8443/product-composite \
+-d scope=product:read \
+-d client_id=$READER_CLIENT_ID \
+-d client_secret=$READER_CLIENT_SECRET -s | jq -r .access_token)
+
 echo READER_ACCESS_TOKEN=$READER_ACCESS_TOKEN
 READER_AUTH="-H \"Authorization: Bearer $READER_ACCESS_TOKEN\""
 
